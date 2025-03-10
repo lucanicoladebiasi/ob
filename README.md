@@ -5,7 +5,7 @@
 The proposed data structure for the "transfer object" leaves big space to imagine the precise meaning of its
 properties.
 
-I decided to represent the "transfer object" as a `Transfer` interface where
+I decided to represent the "transfer object" as a `src/dto/Transfer.ts` interface where
 * `.sender` is sender of the transfer paying to the
 * `.receiver` of the transfer an
 * `.token.amount` in
@@ -28,6 +28,10 @@ the service executing the "market" "transfer" requests: I chose the latter inter
 using the `.refund` property to encode 
 * `refund.tx`: time stamp and KECCAK `Transfer` hash
 * `refund.signedTx`: "solver"'s signature of `refund.tx`.
+
+The "refund" is represented by the `src/dto/Refund.ts` interface and can be optional present in `transaction`
+because it is the data structure the "solver" service fills to sign as "solver" and send to the "market", hence
+the database, the data to build the "transaction" records, used later to refund.
 
 The homework imagines four stakeholders build from secret mnemonic
 ```text
