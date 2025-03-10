@@ -130,6 +130,32 @@ router.get('/balances/:address/:token', async (req: Request, res: Response): Pro
     }
 })
 
+/**
+ * Returns all the transactions representing executed transfers,
+ * sorted chronologically, yhe most recent first,
+ * reverted and not reverted.
+ */
+router.get('/transactions', async (_req: Request, res: Response): Promise<void> => {
+    try {
+        const transactions = await db.getTransactions();
+        res.status(200).json(transactions);
+    } catch (error) {
+        console.error("Error fetching transactions:", error);
+        res.status(500).json({message: "Internal Server Error"});
+    }
+})
+
+/**
+ * Execute a transfer order adjusting balances of sender and receiver addresses.
+ *
+ * * Check the `Transfer` body is valid;
+ * * verify the sender signature;
+ * * fill the `Refund` data and sign as "solver" service;
+ * * lock the involved balances;
+ * * check the sender has sufficient funds in the designated token;
+ * * delegate the DB layer to update balances;
+ * * return the result of the operation to the client.
+ */
 router.post('/transfer', async (req: Request, res: Response): Promise<void> => {
         try {
             const body = req.body

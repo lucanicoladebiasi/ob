@@ -88,6 +88,22 @@ describe('routes tests', () => {
         });
     })
 
+    describe('GET /transactions', () => {
+
+        test(`OK <- GET /transactions`, async () => {
+            const request = new Request(
+                `${baseURL}/transactions`
+            );
+            const response = await fetch(request);
+            expect(response.status).toBe(200);
+            // Uncomment following lines to print the result seen from the REST client.
+            const json = await response.json();
+            console.log(json);
+        })
+
+    })
+
+
     describe('POST /transfer', () => {
 
         const receiver = {

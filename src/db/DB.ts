@@ -1,5 +1,5 @@
 import {Pool} from "pg";
-import {Balance} from "../dto";
+import {Balance, Transaction} from "../dto";
 
 /**
  * The DB class provides methods to interact with a database to manage and retrieve balances.
@@ -69,6 +69,34 @@ class DB {
             token: row.token,
             amount: row.amount,
         } satisfies Balance))
+    }
+
+    /**
+     * Fetches and returns a list of transactions from the database. The transactions are sorted in descending order based on their timestamps.
+     *
+     * @return {Promise<Transaction[]>} A promise that resolves to an array of transactions. Each transaction includes details such as timestamp, transaction ID, sender, receiver, token, amount, and whether the transaction was reverted.
+     */
+    async getTransactions(): Promise<Transaction[]> {
+        const result = await this.pool.query(
+            'SELECT tx_ts, tx_id, sender, receiver, token, amount, reverted from transactions ORDER BY tx_ts DESC'
+        );
+        return result.rows.map((row: {
+            tx_ts: string;
+            tx_id: string;
+            sender: string;
+            receiver: string;
+            token: string;
+            amount: number;
+            reverted: boolean;
+        }) => ({
+            tx_ts: row.tx_ts,
+            tx_id: row.tx_id,
+            sender: row.sender,
+            receiver: row.receiver,
+            token: row.token,
+            amount: row.amount,
+            reverted: row.reverted,
+        } satisfies Transaction));
     }
 
     /**
