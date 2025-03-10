@@ -100,6 +100,48 @@ class DB {
     }
 
     /**
+     * Reverts all transactions in the database that are marked as not yet reverted.
+     * For each transaction, updates the sender's and receiver's balances accordingly
+     * and marks the transaction as reverted in the database.
+     *
+     * @return {Promise<Transaction[]>} A promise that resolves to an array of reverted transactions.
+     */
+    async revertTransactions(): Promise<Transaction[]> {
+        const result = await this.pool.query(
+            'SELECT tx_ts, tx_id, sender, receiver, token, amount, reverted from transactions WHERE reverted = FALSE ORDER BY tx_ts DESC'
+        );
+        const transactions = result.rows.map((row: {
+            tx_ts: string;
+            tx_id: string;
+            sender: string;
+            receiver: string;
+            token: string;
+            amount: number;
+            reverted: boolean;
+        }) => ({
+            tx_ts: row.tx_ts,
+            tx_id: row.tx_id,
+            sender: row.sender,
+            receiver: row.receiver,
+            token: row.token,
+            amount: row.amount,
+            reverted: row.reverted,
+        } satisfies Transaction))
+        for (const transaction of transactions) {
+            await this.pool.query('BEGIN');
+            const senderBalance = (await this.getBalancesForAddressAndToken(transaction.sender, transaction.token))[0];
+            const senderAmount = Number(senderBalance.amount.toString()) + Number(transaction.amount.toString());
+            const receiverBalance = (await this.getBalancesForAddressAndToken(transaction.receiver, transaction.token))[0];
+            const receiverAmount = Number(receiverBalance.amount.toString()) - Number(transaction.amount.toString());
+            await this.pool.query('UPDATE balances SET amount = $3 WHERE address = $1 AND token = $2', [transaction.sender, transaction.token, senderAmount]);
+            await this.pool.query('UPDATE balances SET amount = $3 WHERE address = $1 AND token = $2', [transaction.receiver, transaction.token, receiverAmount]);
+            await this.pool.query('UPDATE transactions SET reverted = true WHERE tx_id = $1', [transaction.tx_id]);
+            await this.pool.query('COMMIT');
+        }
+        return transactions;
+    }
+
+    /**
      * Updates the balance for a specific address and token to a given amount.
      *
      * @param {string} address - The address whose balance is to be updated.

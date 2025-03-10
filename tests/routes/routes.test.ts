@@ -103,6 +103,24 @@ describe('routes tests', () => {
 
     })
 
+    describe('POST /revert', () => {
+        test(`OK <- POST /revert`, async () => {
+            const request = new Request(
+                `${baseURL}/revert`,
+                {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        signature: '0x 0000000000000000000000000000000000000000000000000000000000000000' // Ignore
+                    }),
+                }
+            )
+            const response = await fetch(request);
+            expect(response.status).toBe(200);
+            // Uncomment following lines to print the result seen from the REST client.
+            const json = await response.json();
+            console.log(json);
+        })
+    });
 
     describe('POST /transfer', () => {
 

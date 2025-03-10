@@ -125,12 +125,6 @@ The combination of the `Transfer` properties `
   are used to generate the "lock key" used to synchronize transfers: only one transfer can be executed between two
   stakeholder addresses and the same token address.
 
-The REST service provides few ancillary services to debug and experiment with it
-
-* `GET /balances` - Returns the list of all the balances of addressed stakeholder.
-* `GET /balances/:address` - Returns the list of all the balances of a specific stakeholder identified by its address.
-* `GET /balances/:address/:token` - Returns the balance of token of a specific stakeholder identified by its address.
-
 ## Set-up
 
 ### PostgreSQL
@@ -212,6 +206,18 @@ ts-node ./src/app.ts
 
 The test class `tests/routes/routes.test.ts` provides tests for all the REST end-points.
 
+The REST service provides few ancillary services to debug and experiment with it
+
+* `GET /balances` - Returns the list of all the balances of addressed stakeholder.
+* `GET /balances/:address` - Returns the list of all the balances of a specific stakeholder identified by its address.
+* `GET /balances/:address/:token` - Returns the balance of token of a specific stakeholder identified by its address.
+
+The REST end-points to serve functional requirements are
+
+* `POST /transfer` - Trigger the transfer between sender and receiver accounts  accepting the JSON representation of the `src/dto/Transfer.ts` instance.
+* `GET /transaction` - Return the status af all executed transactions.
+* `POST /revert` - Trigger to revert all not yet reverted transfers, rolling back the status of the market/database
+                   to its initial stage.
 
 
 

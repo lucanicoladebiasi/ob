@@ -131,6 +131,20 @@ router.get('/balances/:address/:token', async (req: Request, res: Response): Pro
 })
 
 /**
+ * As solver REST service administrator, revert all un-reverted transfers
+ * in chronological order from the most recent to the oldest.
+ */
+router.post('/revert', async (_req: Request, res: Response): Promise<void> => {
+    try {
+        const transactions = await db.revertTransactions();
+        res.status(200).json(transactions);
+    } catch (error) {
+        console.error("Error reverting transactions:", error);
+        res.status(500).json({message: "Internal Server Error"});
+    }
+})
+
+/**
  * Returns all the transactions representing executed transfers,
  * sorted chronologically, yhe most recent first,
  * reverted and not reverted.
