@@ -34,14 +34,16 @@ The homework imagines four stakeholders build from secret mnemonic
 sweet attitude face lyrics resemble put pattern face impact fat honey runway
 ```
 The four stakeholders are
-```
+```text
 Secret Mnemonic: sweet attitude face lyrics resemble put pattern face impact fat honey runway
 SOLVER - Address 0: 0x4c066bAC41dC11b7029D06826093202154280709 PRV: 0x2feb4c1dcc3d4de880c585f988ee711baa54bddf1c59c84af3efaab2d248ec6f PUB: 0x020d0a1137fc59d6c4c10fa053c7804f5c43a33eb259ffe01541bf6a3a55006327
 ALICE  - Address 1: 0x095182ADDea1Dd59221D1750D95f78b0c15B0e1C PRV: 0x48d406c92700d07721f6d094d52d14b59348300569c0090dad07b814cc6ae1a6 PUB: 0x02988a6717c6828a3df1a2ab129ab08e2a4e819bef845595a9ad52b67539ef7bf9
 BOB    - Address 2: 0x9D3860f1Fab70216Db9a2bcAb63EE9576da0d926 PRV: 0xfdb48c472288d64d6f6cba0c28257638974a97b186090533bc845ebbdcdca47b PUB: 0x03c3a15415cfd56f33ac5e460485d74d08a028ac883af23557be23cb9a207ac07c
 CHARLE - Address 3: 0x5965c1C60b5191bd270d385589355503f575a136 PRV: 0xf0d297cce44d996fd032d9a8d69bd459958cb121db23c2ab47733653bba0a428 PUB: 0x025120c1e227f6822910092838fe330637780d641f278997695a17b7abcddb0660
-
 ```
+
+The file at `src/crypto/crypto.ts` shows how accounts are created and provides basic functionalities to sign and
+sign and verify `Transfer` objects.
 
 ## Set-up
 
