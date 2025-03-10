@@ -204,5 +204,15 @@ yarn install
 
 ## Run
 
+Start the service at http://localhost:3000 with
+
+```shell
+ts-node ./src/app.ts
+```
+
+The test class `tests/routes/routes.test.ts` provides tests for all the REST end-points.
+
+
+
 
 

@@ -1,7 +1,9 @@
 import {DB} from "../db";
+import {Hex} from "viem";
 import {Pool} from 'pg';
 import {Request, Response, Router} from 'express';
 import {ThreadSafeMap} from "../synch";
+import {isValidTransfer, SignedTransfer, Transfer} from "../dto";
 
 /**
  * A thread-safe map instance designed to store lock states for specific keys.
@@ -127,6 +129,74 @@ router.get('/balances/:address/:token', async (req: Request, res: Response): Pro
         res.status(500).json({message: 'Internal Server Error.'});
     }
 })
+
+router.post('/transfer', async (req: Request, res: Response): Promise<void> => {
+        try {
+            const body = req.body
+            if (isValidTransfer(body)) {
+                const transfer = body as Transfer;
+                const isVerified = await SignedTransfer.verify(transfer);
+                if (isVerified) {
+                    transfer.refund = await SignedTransfer.signForRefund(transfer, solver.private as Hex);
+                    const tx = transfer.refund.tx.split(':');
+                    const tx_ts = tx[0]; // time stamp
+                    const tx_id = tx[1]; // tx identifier
+                    const lockKey = `${transfer.sender}:${transfer.targetChain.receiver}:${transfer.token.address}`;
+                    const isFree = await LOCK_MAP.compareAndSetValue(lockKey, true, (lock) => !lock);
+                    if (isFree) {
+                        let senderBalances = await db.getBalancesForAddressAndToken(transfer.sender, transfer.token.address);
+                        if (senderBalances.length > 0) {
+                            const senderBalance = senderBalances[0];
+                            let receiverBalances = await db.getBalancesForAddressAndToken(transfer.targetChain.receiver, transfer.token.address)
+                            if (receiverBalances.length > 0) {
+                                const receiverBalance = receiverBalances[0];
+                                let transfer_token_amount: number = Number(transfer.token.amount.toString());
+                                let senderBalance_amount: number = Number(senderBalance.amount.toString());
+                                let receiverBalance_amount: number = Number(receiverBalance.amount.toString());
+                                if (transfer_token_amount < senderBalance_amount) {
+                                    senderBalance_amount -= transfer_token_amount;
+                                    receiverBalance_amount += transfer_token_amount;
+                                    const balances = await db.transfer(
+                                        tx_ts,
+                                        tx_id,
+                                        senderBalance.address,
+                                        receiverBalance.address,
+                                        transfer_token_amount,
+                                        transfer.token.address,
+                                        senderBalance_amount,
+                                        receiverBalance_amount
+                                    );
+                                    res.status(200).json({
+                                        transfer: transfer,
+                                        sender: balances.sender,
+                                        receiver: balances.receiver,
+                                    });
+                                } else {
+                                    res.status(403).json({message: 'Insufficient funds.'});
+                                }
+                            } else {
+                                res.status(404).json({message: 'No receiver balance found.'});
+                            }
+                        } else {
+                            res.status(404).json({message: 'No sender balance found.'});
+                        }
+                        await LOCK_MAP.delete(lockKey);
+                    } else {
+                        res.status(409).json({message: 'Transaction already in progress.'});
+                    }
+                } else {
+                    res.status(403).json({message: 'Invalid signature.'});
+                }
+            } else {
+                res.status(400).json({message: 'Invalid transfer request.'});
+            }
+        } catch
+            (error) {
+            console.error("Error transferring tokens:", error);
+            res.status(500).json({message: 'Internal Server Error.'});
+        }
+    }
+)
 
 export default router;
 
