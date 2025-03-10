@@ -2,30 +2,89 @@
 
 ## Rationale
 
+To "Develop a system with TypeScript that will receive signed transfer objects from
+the user and relay them to a market maker for execution (the chain execution
+can be mocked)." I imagined a REST service executing transfers to a relational database representing the market.
+
+The DB assures "user balances need to be locked such that no race conditions".
+The REST service assures to "process requests concurrently using asynchronous best practices."
+
+The REST service "will sign the transfer object as well and approve with it the
+correctness of this user request after it validates the user balance" as represented the sequence diagram.
+
+I was very confused by the term "solver", mulling the homework requires to stage two REST services, the first
+verifying the request signature, signing and the second verify the REST signature, but this approach 
+doesn't represent any proof-of-kowledge of myself as candidate, except the stack of two (micro) services
+in a synchronous or asynchronous mode, scope of a system design inteview, hence I opted to consider
+the REST Service as "the solver" and to image "the solver" has an administrator should be authenticated to execute
+the refund of transfers.
+
+```mermaid
+sequenceDiagram
+    Alice->>Alice: set receiver (Bob)
+    Alice->>Alice: sign
+    Alice->>Solver: POST Transfer
+    Solver->>Solver: validate
+    Solver->>Solver: fill refund data and sign
+    Solver->>DB: execute Transfer
+    DB->>DB: update balances (Alice, Bob) and append transaction
+    DB->>Solver: ack/nak transfer execution
+    Solver->>Alice: ack/nak Transfer POST
+```
+
+I imagined any stakeholder identifies by its account can ask for balances and transfers. 
+
+```mermaid
+sequenceDiagram
+    Bob->>Solver: GET balances or transactions
+    Solver->>DB: query balances or transactions
+    DB->>Solver: ack/nak balances or transaction query
+    Solver->>Bob: ack/nak balances or transactions
+```
+
+The "solver" administrator has an authenticated and authorized access (omitted in this homework) to an end-point
+to ask to revert all the transfers not already reverted, executing from the most recent.
+
+I'm unsure if the homework requires to revert the transacton one by one as done, but it seems to me a requirement
+limiting my possibility to play, hence I imagined a service triggered by its end-point reverting all the
+not-yet-reverted transactions, anytime.
+
+```mermaid
+sequenceDiagram
+    Admin->>Solver: POST revert request
+    Solver->>DB: execute revert 
+    DB->>DB: query all not-reverted transactions from the most recent, revert transfers in balance
+    DB->>Solver: ack/nak revert execution
+    Solver->>Admin: ack/nak revert POST requet
+```
+
 The proposed data structure for the "transfer object" leaves big space to imagine the precise meaning of its
 properties.
 
 I decided to represent the "transfer object" as a `src/dto/Transfer.ts` interface where
+
 * `.sender` is sender of the transfer paying to the
 * `.receiver` of the transfer an
 * `.token.amount` in
 * `.token.address` denomination `0xF0CACC1A`.
 
-To represent the "market" and accomplish the not-functional requirements of 
+To represent the "market" and accomplish the not-functional requirements of
 "user balances need to be locked such that no race conditions appear in case the user sends multiple requests" ,
 I decided to use PostgreSQL, albeit it seems an overkilling approach, it's so common and well documented,
 it requires very little effort to integrate in a JS/TS project.
 
 The "transfer objects" operate in two tables
+
 * `balances` for each service stakeholder;
 * `transactions` to provide the functional requirements of
-  "an  interface that allows the API service to request the execution status" ,and
+  "an interface that allows the API service to request the execution status" ,and
   "trigger the execution of the refund transaction after the solver has successfully executed the transfer object".
 
 The homework introduces the "solver" persona as "The solver provides...": I'm confused if such "solver" is me or
 the service executing the "market" "transfer" requests: I chose the latter interpretation and since
 "The API service will sign the transfer object", the "solver" has its address and private key to perform the operation.
-using the `.refund` property to encode 
+using the `.refund` property to encode
+
 * `refund.tx`: time stamp and KECCAK `Transfer` hash
 * `refund.signedTx`: "solver"'s signature of `refund.tx`.
 
@@ -34,10 +93,13 @@ because it is the data structure the "solver" service fills to sign as "solver" 
 the database, the data to build the "transaction" records, used later to refund.
 
 The homework imagines four stakeholders build from secret mnemonic
+
 ```text
 sweet attitude face lyrics resemble put pattern face impact fat honey runway
 ```
+
 The four stakeholders are
+
 ```text
 Secret Mnemonic: sweet attitude face lyrics resemble put pattern face impact fat honey runway
 SOLVER - Address 0: 0x4c066bAC41dC11b7029D06826093202154280709 PRV: 0x2feb4c1dcc3d4de880c585f988ee711baa54bddf1c59c84af3efaab2d248ec6f PUB: 0x020d0a1137fc59d6c4c10fa053c7804f5c43a33eb259ffe01541bf6a3a55006327
@@ -56,12 +118,18 @@ service allows the possibility multiple workers serve the requests, hence the lo
 performed by the `src/synch/ThreadSafeMap.ts` class.
 
 The combination of the `Transfer` properties `
+
 * `.sender`,
 * `.receiver`,
 * `.token.amount`,
-are used to generate the "lock key" used to synchronize transfers: only one transfer can be executed between two 
-stakeholder addresses and the same token address.
+  are used to generate the "lock key" used to synchronize transfers: only one transfer can be executed between two
+  stakeholder addresses and the same token address.
 
+The REST service provides few ancillary services to debug and experiment with it
+
+* `GET /balances` - Returns the list of all the balances of addressed stakeholder.
+* `GET /balances/:address` - Returns the list of all the balances of a specific stakeholder identified by its address.
+* `GET /balances/:address/:token` - Returns the balance of token of a specific stakeholder identified by its address.
 
 ## Set-up
 
@@ -117,13 +185,13 @@ drop table transactions;
 
 create table transactions
 (
-    tx_ts  varchar(20) not null,
-    tx_id  varchar(66) not null,
-    sender varchar(42) not null,
-    receiver varchar (42) not null,
-    token varchar(42) not null,
-    amount numeric not null,
-    reverted bool not null,
+    tx_ts    varchar(20) not null,
+    tx_id    varchar(66) not null,
+    sender   varchar(42) not null,
+    receiver varchar(42) not null,
+    token    varchar(42) not null,
+    amount   numeric     not null,
+    reverted bool        not null,
     primary key (tx_ts, tx_id)
 );
 ```
