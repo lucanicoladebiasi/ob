@@ -45,6 +45,20 @@ CHARLE - Address 3: 0x5965c1C60b5191bd270d385589355503f575a136 PRV: 0xf0d297cce4
 The file at `src/crypto/crypto.ts` shows how accounts are created and provides basic functionalities to sign and
 sign and verify `Transfer` objects.
 
+The requirements state "The token locks need to be kept in-memory as well as in a key-value store
+in case of a service failure."
+The use of "Node.JS" v23.1.0 and [expressjs](https://expressjs.com/) as library to build a REST
+service allows the possibility multiple workers serve the requests, hence the lock of the transaction is
+performed by the `src/synch/ThreadSafeMap.ts` class.
+
+The combination of the `Transfer` properties `
+* `.sender`,
+* `.receiver`,
+* `.token.amount`,
+are used to generate the "lock key" used to synchronize transfers: only one transfer can be executed between two 
+stakeholder addresses and the same token address.
+
+
 ## Set-up
 
 ### PostgreSQL
